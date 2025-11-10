@@ -25,8 +25,13 @@ abstract class Client
      */
     protected array $stacks = [];
 
-    public function __construct(string $uri, string $version, protected array $options, protected HandlerStackFactory $factory)
-    {
+    public function __construct(
+        protected string $uri,
+        protected string $version,
+        protected array $auth,
+        protected array $options,
+        protected HandlerStackFactory $factory
+    ) {
         $this->baseUri = sprintf('%s/%s/', $uri, $version);
     }
 
@@ -35,6 +40,17 @@ abstract class Client
         $id = (int) Coroutine::inCoroutine();
         if (isset($this->stacks[$id]) && $this->stacks[$id] instanceof HandlerStack) {
             return $this->stacks[$id];
+        }
+
+        if ($this->auth['name'] ?? '' && $this->auth['password'] ?? '') {
+            return $this->stacks[$id] = $this->factory->create([
+                'config' => [
+                    'uri' => $this->uri,
+                    'version' => $this->version,
+                    'auth' => $this->auth,
+                    'options' => $this->options,
+                ],
+            ]);
         }
 
         return $this->stacks[$id] = $this->factory->create();
